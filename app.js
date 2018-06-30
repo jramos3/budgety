@@ -28,7 +28,19 @@ var LSController = (function() {
 
     storeDataOnLS: function(data) {
       localStorage.setItem("data", JSON.stringify(data));
+    },
+
+    resetLS: function() {
+      var day;
+
+      day = new Date();
+      day = day.getDate();
+
+      if(day === 1) {
+        localStorage.clear();
+      }
     }
+    
   }
 })();
 
@@ -336,7 +348,7 @@ var UIController = (function() {
 
 
 //GLOBAL APP CONTROLLER
-var controller = (function(budgetCtrl, UICtrl) {
+var controller = (function(budgetCtrl, UICtrl, LSCtrl) {
 
   var setupEventListeners = function() {
     var DOM = UICtrl.getDOMStrings();
@@ -455,6 +467,8 @@ var controller = (function(budgetCtrl, UICtrl) {
     init: function() {
       console.log("Application has started!");
 
+      LSCtrl.resetLS();
+
       displayItemsFromLS();
 
       setupEventListeners();
@@ -464,6 +478,6 @@ var controller = (function(budgetCtrl, UICtrl) {
     }
   }
 
-})(budgetController, UIController);
+})(budgetController, UIController, LSController);
 
 controller.init();
