@@ -1,6 +1,40 @@
 
+//LOCAL STORAGE CONTROLLER
+var LSController = (function() {
+
+  return {
+    getDataFromLS: function() {
+      var data;
+
+      data = JSON.parse(localStorage.getItem("data"));
+
+      if(!data) {
+        data = {
+          allItems: {
+            exp: [],
+            inc: []
+          },
+          totals: {
+            exp: 0,
+            inc: 0
+          },
+          budget: 0,
+          percentage: -1
+        };
+      }
+      
+      return data;
+    },
+
+    storeDataOnLS: function(data) {
+      localStorage.setItem("data", JSON.stringify(data));
+    }
+  }
+})();
+
+
 //BUDGET CONTROLLER
-var budgetController = (function() {
+var budgetController = (function(LSCtrl) {
 
   var Expense = function(id, description, value) {
     this.id = id;
@@ -35,18 +69,11 @@ var budgetController = (function() {
     data.totals[type] = sum;
   };
 
-  var data = {
-    allItems: {
-      exp: [],
-      inc: []
-    },
-    totals: {
-      exp: 0,
-      inc: 0
-    },
-    budget: 0,
-    percentage: -1
-  };
+  var data = LSCtrl.getDataFromLS();
+
+  data.allItems.exp.forEach(function(expense) {
+    Object.setPrototypeOf(expense, Expense.prototype);
+  });
 
   return {
     addItem: function(type, des, val) {
@@ -70,6 +97,9 @@ var budgetController = (function() {
       //Push newItem onto data
       data.allItems[type].push(newItem);
 
+      //Update data on LS
+      LSCtrl.storeDataOnLS(data);
+
       return newItem;
     },
 
@@ -86,6 +116,9 @@ var budgetController = (function() {
       if(index !== -1) {
         data.allItems[type].splice(index, 1);
       }
+
+      //Update data on LS
+      LSCtrl.storeDataOnLS(data);
     },
 
     calculateBudget: function() {
@@ -101,11 +134,15 @@ var budgetController = (function() {
       if(data.totals.inc > 0) {
         data.percentage = Math.round( (data.totals.exp / data.totals.inc) * 100 );
       }
+
+      LSCtrl.storeDataOnLS(data);
     },
 
     calculatePercentages: function() {
       data.allItems.exp.forEach(function(current) {
         current.calcPercentage(data.totals.inc);
+
+        LSCtrl.storeDataOnLS(data);
       });
     },
 
@@ -126,12 +163,21 @@ var budgetController = (function() {
       };
     },
 
+    getAllIncomesFromLS: function() {
+      return data.allItems.inc;
+    },
+
+    getAllExpensesFromLS: function() {
+      return data.allItems.exp;
+    },
+
+    //testing method only!
     testing: function() {
       console.log(data);
     }
   };
 
-})();
+})(LSController);
 
 
 
@@ -383,16 +429,33 @@ var controller = (function(budgetCtrl, UICtrl) {
     }
   };
 
+  var displayItemsFromLS = function() {
+    var budget, incomes, expenses, percentages;
+
+    budget = budgetCtrl.getBudget();
+    UICtrl.displayBudget(budget);
+
+    incomes = budgetCtrl.getAllIncomesFromLS();
+    expenses = budgetCtrl.getAllExpensesFromLS();  
+    percentages = budgetCtrl.getPercentages();
+
+    incomes.forEach(function(income) {
+      UICtrl.addListItem(income, "inc");
+    });
+
+    expenses.forEach(function(expense) {
+      UICtrl.addListItem(expense, "exp");
+    });
+
+    UICtrl.displayPercentages(percentages);
+
+  };
+
   return {
     init: function() {
       console.log("Application has started!");
 
-      UICtrl.displayBudget({
-        budget: 0,
-        totalInc: 0,
-        totalExp: 0,
-        percentage: -1
-      });
+      displayItemsFromLS();
 
       setupEventListeners();
 
